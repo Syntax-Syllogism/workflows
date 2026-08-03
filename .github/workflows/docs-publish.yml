@@ -19,6 +19,13 @@ on:
       SITE_PAGES_TOKEN:
         description: Token allowed to publish to the site repository.
         required: true
+      PACKAGES_READ_TOKEN:
+        description: >-
+          Token with read:packages for the @syntax-syllogism scope. The
+          per-repository GITHUB_TOKEN cannot read packages published from
+          another repository, so the docs theme install needs an org-wide
+          token rather than the job's own credentials.
+        required: true
 
 permissions:
   contents: read
@@ -43,7 +50,7 @@ jobs:
       - run: npm ci
         working-directory: docs-site
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN }}
 
       - run: npm run build
         working-directory: docs-site

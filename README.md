@@ -33,8 +33,13 @@ jobs:
 | `public_repo` | yes | `owner/name` of the public tool repository. |
 | `site_repo` | yes | `owner/name` of the documentation site repository. |
 
-Required secret: `SITE_PAGES_TOKEN`, a token allowed to push to `site_repo`.
-It is set as an organization secret, so `secrets: inherit` is enough.
+Required secrets, both set as organization secrets so `secrets: inherit` is
+enough:
+
+| Secret | Purpose |
+| --- | --- |
+| `SITE_PAGES_TOKEN` | Push access to `site_repo`. `GITHUB_TOKEN` cannot write to an external repository. |
+| `PACKAGES_READ_TOKEN` | `read:packages` for the `@syntax-syllogism` scope, to install the private docs theme. A repository's own `GITHUB_TOKEN` cannot read packages published from a different repository. |
 
 The job is guarded by `github.repository == inputs.public_repo`, so the same
 caller workflow is a no-op when it runs on a private mirror.
