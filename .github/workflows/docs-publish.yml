@@ -1,0 +1,58 @@
+name: Publish documentation
+
+on:
+  workflow_call:
+    inputs:
+      tool_slug:
+        description: Site subpath for the tool.
+        required: true
+        type: string
+      public_repo:
+        description: owner/name of the public tool repository.
+        required: true
+        type: string
+      site_repo:
+        description: owner/name of the documentation site repository.
+        required: true
+        type: string
+    secrets:
+      SITE_PAGES_TOKEN:
+        description: Token allowed to publish to the site repository.
+        required: true
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: docs-publish-${{ inputs.site_repo }}
+
+jobs:
+  docs:
+    if: github.repository == inputs.public_repo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://npm.pkg.github.com
+          scope: '@syntax-syllogism'
+
+      - run: npm ci
+        working-directory: docs-site
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: npm run build
+        working-directory: docs-site
+
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          personal_token: ${{ secrets.SITE_PAGES_TOKEN }}
+          external_repository: ${{ inputs.site_repo }}
+          publish_branch: master
+          publish_dir: docs-site/dist
+          destination_dir: ${{ inputs.tool_slug }}/docs
+          keep_files: true
