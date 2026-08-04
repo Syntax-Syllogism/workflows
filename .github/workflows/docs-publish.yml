@@ -41,11 +41,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Astro loads `docs-site/astro.config.mjs` through Vite, and Vite reads
+      # the repo-ROOT `tsconfig.json` while doing so — a nearer
+      # `docs-site/tsconfig.json` does not shadow it. When the root tsconfig
+      # `extends` a package (the oclif plugins extend
+      # `@salesforce/dev-config/tsconfig-strict-esm`), that package must be
+      # installed or the config load fails with "Tsconfig not found", before
+      # any option inside the config can take effect.
+      #
+      # Detected rather than passed as an input so the caller contract is
+      # unchanged. Repos with no root lockfile — a docs-only site — skip the
+      # install entirely.
+      - id: root
+        name: Detect root package manager
+        run: |
+          if [ -f yarn.lock ]; then
+            echo 'manager=yarn' >> "$GITHUB_OUTPUT"
+            echo 'lockfile=yarn.lock' >> "$GITHUB_OUTPUT"
+          elif [ -f package-lock.json ]; then
+            echo 'manager=npm' >> "$GITHUB_OUTPUT"
+            echo 'lockfile=package-lock.json' >> "$GITHUB_OUTPUT"
+          else
+            echo 'manager=' >> "$GITHUB_OUTPUT"
+            echo 'lockfile=' >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           registry-url: https://npm.pkg.github.com
           scope: '@syntax-syllogism'
+          # Empty `cache` disables caching, for repos with no root lockfile.
+          cache: ${{ steps.root.outputs.manager }}
+          cache-dependency-path: ${{ steps.root.outputs.lockfile }}
+
+      - name: Install root dependencies
+        if: steps.root.outputs.manager != ''
+        run: ${{ steps.root.outputs.manager == 'yarn' && 'yarn install --frozen-lockfile' || 'npm ci' }}
 
       - run: npm ci
         working-directory: docs-site
