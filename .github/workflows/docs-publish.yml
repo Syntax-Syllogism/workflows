@@ -78,6 +78,8 @@ jobs:
       - name: Install root dependencies
         if: steps.root.outputs.manager != ''
         run: ${{ steps.root.outputs.manager == 'yarn' && 'yarn install --frozen-lockfile' || 'npm ci' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN }}
 
       - run: npm ci
         working-directory: docs-site
